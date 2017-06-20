@@ -1,0 +1,17 @@
+<script type="text/javascript">
+
+  function wpsAggregate(dataset_id, index_node, shard, project) {
+    var url = "/wps/aggregate/"+dataset_id+"/"+index_node+"/?"+getQueryFilter('GET');
+
+    if (shard.length > 0) {
+      url += "&shard=" + encodeURI(shard);
+    }
+
+    base_url = url.substring(0, url.indexOf('?'));
+
+    params = URLToArray(url);
+
+    post_to_url(base_url, params);
+  }
+
+</script>

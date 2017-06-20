@@ -15,6 +15,7 @@ from views_project import *
 from views_signal import *
 from views_aboutus import *
 from views_search import *
+from views_wps import *
 from cog.views.views_share import *
 from cog.views.views_access_control import *
 from cog.views.views_globus import *
