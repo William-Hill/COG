@@ -1,6 +1,6 @@
 <script type="text/javascript">
 
-  function wpsAggregate(dataset_id, index_node, shard, project) {
+  function wpsAggregate(dataset_id, index_node, shard) {
     var url = "/wps/aggregate/"+dataset_id+"/"+index_node+"/?"+getQueryFilter('GET');
 
     if (shard.length > 0) {
