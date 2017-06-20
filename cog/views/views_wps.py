@@ -91,12 +91,23 @@ def wps_process(request, process, dataset_id, index_node):
 
     candidates = Counter([x for y in inputs.values() for x in y])
 
-    common = candidates.most_common()
+    candidate_keys = candidates.keys()
 
-    try:
-        var_name, count = common[0]
-    except IndexError:
-        return HttpResponseBadRequest('')
+    var_name = None
+
+    # match a query parameter as a variable name
+    for arg in query:
+        if arg in candidate_keys:
+            var_name = arg
+
+            break
+    
+    # choose most common name
+    if var_name is None:
+        try:
+            var_name, _ = candidates.most_common()[0]
+        except IndexError:
+            return HttpResponseBadRequest('Unable to determine variable name.')
 
     output = StringIO.StringIO()
 
