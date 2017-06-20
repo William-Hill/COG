@@ -37,6 +37,12 @@ def write_wps_script(buf, identifier, inputs, var_name):
 
     buf.write("print proc.output")
 
+def get_method_param(request, key):
+    if request.method == 'GET':
+        return request.GET.get(key, None)
+    else:
+        return request.POST.get(key, None)
+
 @csrf_exempt
 def wps_process(request, process, dataset_id, index_node):
     params = [
@@ -46,16 +52,16 @@ def wps_process(request, process, dataset_id, index_node):
         ('offset', 0)
     ]
 
-    query = request.GET.get('query', None)
+    query = get_method_param(request, 'query')
 
     if query is not None and len(query.strip()) > 0:
         for c in INVALID_CHARS:
             if c in query:
                 return HttpResponseBadRequest(ERROR_MESSAGE_INVALID_TEXT, content_type="text/plain")
 
-        params.append(('query'), query)
+        params.append(('query', query))
 
-    shard = request.GET.get('shard', '')
+    shard = get_method_param(request, 'shard')
 
     if shard is not None and len(shard.strip()) > 0:
         params.append(('shards', shard + '/solr'))
