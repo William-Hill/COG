@@ -95,12 +95,13 @@ def wps_process(request, process, dataset_id, index_node):
 
     var_name = None
 
-    # match a query parameter as a variable name
-    for arg in query:
-        if arg in candidate_keys:
-            var_name = arg
+    if query is not None:
+        # match a query parameter as a variable name
+        for arg in query:
+            if arg in candidate_keys:
+                var_name = arg
 
-            break
+                break
     
     # choose most common name
     if var_name is None:
