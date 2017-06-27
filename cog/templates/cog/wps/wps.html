@@ -1,0 +1,121 @@
+{% extends "cog/common/layout_center.html" %}
+
+{% load static %}
+
+{% block extrahead %}
+  <script type="text/javascript" src="{% static 'js/d3.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/topojson.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/jquery/jquery-1.4.2.min.js' %}"></script>
+  {% include 'cog/wps/_wps_js.html' %}
+{% endblock %}
+
+{% block main %}
+
+<div class="yui-skin-sam">
+  <form action="{% url 'wps_process' %}" method="POST">
+    <input type="hidden" name="files" id="files" value="{{ files|join:',' }}" />
+    <table>
+      <tr>
+        <td>
+          <h1 class="title">Configuration</h1>
+        </td>
+        <td />
+        <td>
+          <input type="submit" value="Download" />
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <label for="process"><strong>Process</strong></label>
+        </td>
+        <td>
+          <select name="process" id="process">
+            <option value="CDAT.aggregate">CDAT.aggregate</option>
+            <option value="CDAT.subset">CDAT.subset</option>
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <label for="variable"><strong>Variable</strong></label>
+        </td>
+        <td>
+          <select name="variable" id="variable">
+          {% for var in variables %}
+            <option value="{{ var }}">{{ var }}</option>
+          {% endfor %}
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <label for="regrid"><strong>Regrid</strong></label>
+        </td>
+        <td>
+          <select name="regrid" id="regrid"></select>
+          <div id="regridOptions" />
+        </td>
+      </tr>
+    </table>
+    <h1 class="title">Domain</h1>
+    <div>
+      <svg />
+    </div>
+    <br/>
+    <table>
+      <tr>
+        <td>
+          <label for="domains"><strong>Domains</strong></label>
+          <select id="domains"></select>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Time</strong> ({{ time_freq }})</td>
+        <td>
+          <label for="start">Start</label>
+          <input name="time-start" id="start" type="datetime" value="{{ time.0|date:'SHORT_DATE_FORMAT' }}" />
+        </td>
+        <td>
+          <label for="stop">Stop</label>
+          <input name="time-stop" id="stop" type="datetime" value="{{ time.1|date:'SHORT_DATE_FORMAT' }}" />
+        </td>
+        <td>
+          <label for="step">Step</label>
+          <input name="time-step" id="step" type="number" value="1" />
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Latitude</strong> (Degrees)</td>
+        <td>
+          <label for="lat-start">Start</label>
+          <input name="lat-start" id="lat-start" type="number" value="90" />
+        </td>
+        <td>
+          <label for="lat-stop">Stop</label>
+          <input name="lat-stop" id="lat-stop" type="number" value="-90" />
+        </td>
+        <td>
+          <label for="lat-step">Step</label>
+          <input name="lat-step" id="lat-step" type="number" value="1" />
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Longitude</strong> (Degrees)</td>
+        <td>
+          <label for="lon-start">Start</label>
+          <input name="lon-start" id="lon-start" type="number" value="0" />
+        </td>
+        <td>
+          <label for="lon-stop">Stop</label>
+          <input name="lon-stop" id="lon-stop" type="number" value="360" />
+        </td>
+        <td>
+          <label for="lon-step">Step</label>
+          <input name="lon-stop" id="lon-step" type="number" value="1" />
+        </td>
+      </tr>
+    </table>
+  </form>
+</div>
+
+{% endblock %}

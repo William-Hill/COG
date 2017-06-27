@@ -1,31 +1,95 @@
+import datetime
 import json
+import re
 import StringIO
 import urllib, urllib2
 from collections import Counter
 
 from django import http
 from django.http import HttpResponse, HttpResponseBadRequest
+from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
 
 INVALID_CHARS = "[<>&#%{}\[\]\$]"
 
-WPS_SERVER = 'aims2.llnl.gov'
+WPS_SERVER = '10.5.5.5:8001'
 
-def write_wps_script(buf, identifier, inputs, var_name):
+def get_method_param(request, key):
+    if request.method == 'GET':
+        return request.GET.get(key, None)
+    else:
+        return request.POST.get(key, None)
+
+def retrieve_files(request):
+    dataset_id = get_method_param(request, 'dataset_id')
+
+    index_node = get_method_param(request, 'index_node')
+
+    shard = get_method_param(request, 'shard')
+
+    query = get_method_param(request, 'query')
+
+    params = [
+        ('type', 'File'), 
+        ('dataset_id', dataset_id),
+        ('format', 'application/solr+json'), 
+        ('offset', 0)
+    ]
+
+    if query is not None and len(query.strip()) > 0:
+        for c in INVALID_CHARS:
+            if c in query:
+                return HttpResponseBadRequest(ERROR_MESSAGE_INVALID_TEXT, content_type="text/plain")
+
+        params.append(('query', query))
+
+    if shard is not None and len(shard.strip()) > 0:
+        params.append(('shards', shard + '/solr'))
+    else:
+        params.append(('distrib', 'false'))
+
+    url = 'http://'+index_node+'/esg-search/search?'+urllib.urlencode(params)
+
+    response = urllib2.urlopen(url)
+
+    return response.read().decode('UTF-8')
+
+def find_access_url(urls, access_type):
+    for candidate in urls:
+        url, mime, atype = candidate.split('|')
+
+        if atype == access_type:
+            return url
+
+    return None
+
+@csrf_exempt
+def wps_process(request):
+    data = ''
+    filename = 'test.py'
+
+    buf = StringIO.StringIO()
+
     buf.write("import cwt\nimport time\n\n")
 
-    buf.write("key='YOUR KEY'\n\n")
+    buf.write("key = 'YOUR KEY'\n\n")
 
-    buf.write("wps = cwt.WPS('https://{}/wps', api_key=key)\n\n".format(WPS_SERVER))
+    buf.write("wps = cwt.WPS('http://{}/wps', api_key=key)\n\n".format(WPS_SERVER)) 
 
-    buf.write("proc = wps.get_process('{}')\n\n".format(identifier))
+    variable = get_method_param(request, 'variable')
+
+    files = get_method_param(request, 'files').split(',')
 
     buf.write("inputs = [\n")
 
-    for i in inputs:
-        buf.write("\tcwt.Variable('{}', '{}'),\n".format(i, var_name))
+    for f in files:
+        buf.write("\tcwt.Variable('{}', '{}'),\n".format(f, variable))
 
     buf.write("]\n\n")
+
+    process = get_method_param(request, 'process')
+
+    buf.write("proc = wps.get_process('{}')\n\n".format(process))
 
     buf.write("wps.execute(proc, inputs=inputs)\n\n")
 
@@ -35,90 +99,62 @@ def write_wps_script(buf, identifier, inputs, var_name):
 
     buf.write("\ttime.sleep(1)\n\n")
 
-    buf.write("print proc.output")
+    buf.write("print proc.status")
 
-def get_method_param(request, key):
-    if request.method == 'GET':
-        return request.GET.get(key, None)
-    else:
-        return request.POST.get(key, None)
+    response = HttpResponse(buf.getvalue(), content_type='text/x-script.phyton')
 
-@csrf_exempt
-def wps_process(request, process, dataset_id, index_node):
-    params = [
-        ('type', 'File'), 
-        ('dataset_id', dataset_id),
-        ('format', 'application/solr+json'), 
-        ('offset', 0)
-    ]
-
-    query = get_method_param(request, 'query')
-
-    if query is not None and len(query.strip()) > 0:
-        for c in INVALID_CHARS:
-            if c in query:
-                return HttpResponseBadRequest(ERROR_MESSAGE_INVALID_TEXT, content_type="text/plain")
-
-        params.append(('query', query))
-
-    shard = get_method_param(request, 'shard')
-
-    if shard is not None and len(shard.strip()) > 0:
-        params.append(('shards', shard + '/solr'))
-    else:
-        params.append(('distrib', 'false'))
-
-    url = 'http://'+index_node+'/esg-search/search?'+urllib.urlencode(params)
-
-    fh = urllib2.urlopen(url)
-
-    response = fh.read().decode('UTF-8')
-
-    data = json.loads(response)
-
-    docs = data['response']['docs']
-
-    inputs = {}
-
-    for d in docs:
-        for u in d.get('url', []):
-            url, mime, endpoint = u.split('|')
-
-            if endpoint == 'OPENDAP':
-                file_url = url.replace('.html', '')
-
-                inputs[file_url] = d.get('variable')
-
-    candidates = Counter([x for y in inputs.values() for x in y])
-
-    candidate_keys = candidates.keys()
-
-    var_name = None
-
-    if query is not None:
-        # match a query parameter as a variable name
-        for arg in query:
-            if arg in candidate_keys:
-                var_name = arg
-
-                break
-    
-    # choose most common name
-    if var_name is None:
-        try:
-            var_name, _ = candidates.most_common()[0]
-        except IndexError:
-            return HttpResponseBadRequest('Unable to determine variable name.')
-
-    output = StringIO.StringIO()
-
-    write_wps_script(output, 'CDAT.aggregate', inputs, var_name)
-
-    response = HttpResponse(output.getvalue(), content_type='text/x-script.phyton')
-
-    response['Content-Length'] = output.tell()
-    response['Content-Disposition'] = 'attachment; filename=aggregate.py'
-
-    output.close()
+    response['Content-Disposition'] = 'attachment; filename={}'.format(filename)
 
     return response
+
+@csrf_exempt
+def wps(request):
+    context = {}
+
+    try:
+        files = retrieve_files(request) 
+    except Exception:
+        files = None
+
+    if files is not None:
+        data = json.loads(files)
+
+        docs = data['response']['docs']
+
+        var_names = [x for d in docs for x in d.get('variable', [])]
+
+        files = [find_access_url(x.get('url', []), 'OPENDAP') for x in docs]
+
+        files = [x.replace('.html', '') if x is not None else None for x in files]
+
+        pattern = re.compile('.*/.*_(\d+)-(\d+)\.nc')
+
+        time_freq = docs[0]['time_frequency'][0]
+
+        times = [x for y in files for x in pattern.match(y).groups()]
+
+        time_formats = {
+            'day': '%Y%m%d',
+            'mon': '%Y%m',
+            'yr': '%Y'
+        }
+
+        start = datetime.datetime.strptime(times[0], time_formats.get(time_freq))
+
+        stop = datetime.datetime.strptime(times[-1], time_formats.get(time_freq))
+
+        time_freq_map = {
+            'day': 'Day',
+            'mon': 'Month',
+            'yr': 'Year',
+        }
+
+        context['variables'] = list(set(var_names))
+        context['wps_server'] = WPS_SERVER
+        context['files'] = files
+        context['time'] = [start, stop]
+        context['time_freq'] = time_freq_map.get(time_freq, 'Unknown')
+    else:
+        context['variables'] = ['None']
+
+    return render(request, 'cog/wps/wps.html', context)

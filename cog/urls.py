@@ -84,7 +84,8 @@ urlpatterns = [
     url(r'^datacart/datacart-pid/(?P<site_id>\d+)/(?P<user_id>\d+)/$', cog.views.datacart_pid, name='datacart_pid'),
 
     # wps
-    url(r'^wps/(?P<process>.+)/(?P<dataset_id>.+)/(?P<index_node>.+)/$', cog.views.wps_process, name='wps_process'),
+    url(r'^wps/service/$', cog.views.wps, name='wps'),
+    url(r'^wps/service/generate/$', cog.views.wps_process, name='wps_process'), 
 
     # projects
     url(r'^project/add/$', cog.views.project_add, name='project_add' ),
