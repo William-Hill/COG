@@ -131,23 +131,11 @@ def wps(request):
 
         time_freq = docs[0]['time_frequency'][0]
 
-        times = [x for y in files for x in pattern.match(y).groups()]
-
-        time_formats = {
-            'day': '%Y%m%d',
-            'mon': '%Y%m',
-            'yr': '%Y'
-        }
+        times = sorted([x for y in files for x in pattern.match(y).groups()])
 
         start = datetime.datetime.strptime(times[0], time_formats.get(time_freq))
 
         stop = datetime.datetime.strptime(times[-1], time_formats.get(time_freq))
-
-        time_freq_map = {
-            'day': 'Day',
-            'mon': 'Month',
-            'yr': 'Year',
-        }
 
         context['variables'] = list(set(var_names))
         context['wps_server'] = WPS_SERVER
