@@ -195,6 +195,9 @@ $(document).ready(function() {
         .attr('y', data.start[1])
         .attr('width', data.stop[0] - data.start[0])
         .attr('height', data.stop[1] - data.start[1]);
+
+    d3.select('#domain_modified')
+        .attr('value', true);
   });
 
   function onChange(id, prop, index, map, origin, shape) {
@@ -223,6 +226,9 @@ $(document).ready(function() {
           if (shape != undefined) {
             roi.attr(shape, +roi.attr(shape) - diff);
           }
+
+          d3.select('#domain_modified')
+              .attr('value', true);
         });
   }
 

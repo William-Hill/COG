@@ -63,6 +63,18 @@ def find_access_url(urls, access_type):
 
     return None
 
+time_formats = {
+    'day': '%Y%m%d',
+    'mon': '%Y%m',
+    'yr': '%Y'
+}
+
+time_freq_map = {
+    'day': 'Day',
+    'mon': 'Month',
+    'yr': 'Year',
+}
+
 @csrf_exempt
 def wps_process(request):
     data = ''
@@ -87,11 +99,45 @@ def wps_process(request):
 
     buf.write("]\n\n")
 
+    domain_modified = get_method_param(request, 'domain_modified')
+
+    if domain_modified:
+        lon_start = get_method_param(request, 'lon-start')
+
+        lon_stop = get_method_param(request, 'lon-stop')
+
+        lon_step = get_method_param(request, 'lon-step')
+
+        lat_start = get_method_param(request, 'lat-start')
+
+        lat_stop = get_method_param(request, 'lat-stop')
+
+        lat_step = get_method_param(request, 'lat-step')
+
+        time_start = get_method_param(request, 'time-start')
+
+        time_stop = get_method_param(request, 'time-stop')
+
+        time_step = get_method_param(request, 'time-step')
+
+        buf.write("domain = cwt.Domain([\n")
+
+        buf.write("\tcwt.Dimension('time', '{}', '{}', 'timestamps', step={}),\n".format(time_start, time_stop, time_step))
+
+        buf.write("\tcwt.Dimension('longitude', {}, {}, step={}),\n".format(lon_start, lon_stop, lon_step))
+
+        buf.write("\tcwt.Dimension('latitude', {}, {}, step={}),\n".format(lat_start, lat_stop, lat_step))
+
+        buf.write("])\n\n")
+
     process = get_method_param(request, 'process')
 
     buf.write("proc = wps.get_process('{}')\n\n".format(process))
 
-    buf.write("wps.execute(proc, inputs=inputs)\n\n")
+    if domain_modified:
+        buf.write("wps.execute(proc, inputs=inputs, domain=domain)\n\n")
+    else:
+        buf.write("wps.execute(proc, inputs=inputs)\n\n")
 
     buf.write("while proc.processing:\n")
 
