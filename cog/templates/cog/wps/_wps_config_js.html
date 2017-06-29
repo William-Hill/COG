@@ -130,7 +130,7 @@ function cartesian(projection, id) {
   return projection([lon, lat]);
 }
 
-$(document).ready(function() {
+YAHOO.util.Event.onDOMReady(function() {
   var dispatcher = d3.dispatch('updateRoi');
 
   load_domains(dispatcher);
