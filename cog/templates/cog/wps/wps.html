@@ -14,14 +14,10 @@
   <form action="{% url 'wps_process' %}" method="POST">
     <input type="hidden" name="domain_modified" id="domain_modified" value="false" />
     <input type="hidden" name="files" id="files" value="{{ files|join:',' }}" />
-    <table>
+    <table style="width: 50%;" id="configuration">
       <tr>
-        <td>
+        <td style="width: 10%;">
           <h1 class="title">Configuration</h1>
-        </td>
-        <td />
-        <td>
-          <input type="submit" value="Download" />
         </td>
       </tr>
       <tr>
@@ -51,9 +47,8 @@
         <td>
           <label for="regrid"><strong>Regrid</strong></label>
         </td>
-        <td>
-          <select name="regrid" id="regrid"></select>
-          <div id="regridOptions" />
+        <td id="regrid-col">
+          <select id="regrid"></select>
         </td>
       </tr>
     </table>

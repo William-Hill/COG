@@ -4,7 +4,7 @@
   fill: none;
   stroke: #777;
   stroke-width: .5px;
-  stroke-opacity: .5;
+  stroke-opacity: 1.0;
 }
 
 .boundary {
@@ -49,28 +49,31 @@ Number.prototype.map = function(in_min, in_max, out_min, out_max) {
   return (this - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-function load_domains(dispatcher) {
+function geoCoord(postFix) {
+  return [
+    (+d3.select('#lon-' + postFix).property('value')).map(0, 360, -180, 180),
+    +d3.select('#lat-' + postFix).property('value'),
+    ];
+}
+
+function load_domains(dispatch) {
   d3.select('#domains')
       .on('change', function() {
-        var sel = domains[this.selectedIndex];
+        var domain = domains[this.selectedIndex];
 
-        if (sel.hasOwnProperty('lat')) {
-          d3.select('#lat-start')
-              .property('value', sel.lat[0]);
+        if (domain.hasOwnProperty('lon')) {
+          d3.select('#lon-start').attr('value', domain.lon[0]);
 
-          d3.select('#lat-stop')
-              .property('value', sel.lat[1]);
+          d3.select('#lon-stop').attr('value', domain.lon[1]);
         }
 
-        if (sel.hasOwnProperty('lon')) {
-          d3.select('#lon-start')
-              .property('value', sel.lon[0]);
+        if (domain.hasOwnProperty('lat')) {
+          d3.select('#lat-start').attr('value', domain.lat[0]);
 
-          d3.select('#lon-stop')
-              .property('value', sel.lon[1]);
+          d3.select('#lat-stop').attr('value', domain.lat[1]);
         }
 
-        dispatcher.call('updateRoi');
+        dispatch.call('updateROI');
       })
       .selectAll('option')
       .data(domains)
@@ -78,38 +81,45 @@ function load_domains(dispatcher) {
       .text(function(d) { return d.name; });
 }
 
-function add_input(container, label, id, value, type) {
-  d3.select(container)
-      .append('label')
-      .attr('for', id)
-      .text(label);
-
-  d3.select(container)
-      .append('input')
-      .attr('id', id)
-      .attr('value', value)
-      .attr('type', type);
-}
-
 function clear_regrid() {
-  d3.select('#regridOptions')
-      .selectAll('*')
+  d3.select('#gaussian-control')
+      .remove();
+
+  d3.select('#uniform-control')
       .remove();
 }
 
 function load_regrid() {
+  var gaussian = `<td></td>
+    <td>
+      <input id="gaussian-lats" type="number" placeholder="Lats" />
+    </td>`;
+  var uniform = `<td></td>
+    <td>
+      <input id="uniform-lons" type="number" placeholder="Lons" />
+      <input id="uniform-lats" type="number" placeholder="Lats" />
+    </td>`;
+
   d3.select('#regrid')
       .on('change', function() {
-        var sel = regrid[this.selectedIndex];
+        var gridType = regrid[this.selectedIndex];
 
-        clear_regrid();
+        if (gridType === 'Gaussian') {
+          clear_regrid();
+          
+          d3.select('#configuration')
+              .append('tr')
+              .attr('id', 'gaussian-control')
+              .html(gaussian);
+        } else if (gridType === 'Uniform') {
+          clear_regrid();
 
-        if (sel.toLowerCase() === 'gaussian') {
-          add_input('#regridOptions', 'Lats', 'gaussian', 32, 'number');
-        } else if (sel.toLowerCase() === 'uniform') {
-          add_input('#regridOptions', 'Lats', 'uniform-lat', 1, 'number');
-
-          add_input('#regridOptions', 'Lons', 'uniform-lon', 1, 'number');
+          d3.select('#configuration')
+              .append('tr')
+              .attr('id', 'uniform-control')
+              .html(uniform);
+        } else {
+          clear_regrid();
         }
       })
       .selectAll('option')
@@ -118,23 +128,10 @@ function load_regrid() {
       .text(function(d) { return d; });
 }
 
-function input(id) {
-  return d3.select(id);
-}
-
-function cartesian(projection, id) {
-  var lon = +input('#lon-' + id).attr('value');
-  var lat = +input('#lat-' + id).attr('value');
-
-  lon = lon.map(0, 360, -180, 180);
-
-  return projection([lon, lat]);
-}
-
 YAHOO.util.Event.onDOMReady(function() {
-  var dispatcher = d3.dispatch('updateRoi');
+  var dispatch = d3.dispatch('updateROI');
 
-  load_domains(dispatcher);
+  load_domains(dispatch);
 
   load_regrid();
 
@@ -142,21 +139,10 @@ YAHOO.util.Event.onDOMReady(function() {
 
   var rect = node.getBoundingClientRect();
 
-  console.log(rect);
-
   var width = rect.width;
   var height = width / 1.92;
+  var header = 30;
   var data = {};
-
-  var f = d3.format('.5r');
-
-  var color = d3.scaleOrdinal(d3.schemeCategory20);
-
-  var projection = d3.geoEquirectangular();
-
-  var path = d3.geoPath(projection);
-
-  var graticule = d3.geoGraticule();
 
   var svg = d3.select('svg')
       .attr('width', width)
@@ -164,120 +150,91 @@ YAHOO.util.Event.onDOMReady(function() {
       .style('border-style', 'solid')
       .style('border-width', '0.5px');
 
-  svg.append('path')
-      .datum(graticule)
-      .attr('class', 'graticule')
-      .attr('d', path);
+  svg.append('text')
+      .attr('class', 'coords')
+      .attr('x', 5)
+      .attr('y', 15);
 
-  data.start = cartesian(projection, 'start');
-
-  data.stop = cartesian(projection, 'stop');
-
-  var roi = svg.append('rect')
-      .attr('x', data.start[0])
-      .attr('y', data.start[1])
-      .attr('width', data.stop[0] - data.start[0])
-      .attr('height', data.stop[1] - data.start[1])
-      .attr('class', 'roi');
-
-  dispatcher.on('updateRoi', function() {
-    var lon_start = +input('#lon-start').property('value');
-
-    var lon_stop = +input('#lon-stop').property('value');
-
-    var lat_start = +input('#lat-start').property('value');
-
-    var lat_stop = +input('#lat-stop').property('value');
-
-    lon_start = lon_start.map(0, 360, -180, 180);
-
-    lon_stop = lon_stop.map(0, 360, -180, 180);
-
-    data.start = projection([lon_start, lat_start]);
-
-    data.stop = projection([lon_stop, lat_stop]);
-
-    roi.attr('x', data.start[0])
-        .attr('y', data.start[1])
-        .attr('width', data.stop[0] - data.start[0])
-        .attr('height', data.stop[1] - data.start[1]);
-
-    d3.select('#domain_modified')
-        .attr('value', true);
-  });
-
-  function onChange(id, prop, index, map, origin, shape) {
-    d3.select(id)
+  // defined here since we use the closure on the data variable
+  function create_control(dimension, postFix, projection) {
+    d3.select('#' + dimension + '-' + postFix)
         .on('change', function() {
-          var old = data[prop][index];
-
-          var value = (+this.value);
-
-          if (map) {
-            value = value.map(0, 360, -180, 180);
-          }
-
-          if (index == 0) {
-            a = [value, 0];
-          } else {
-            a = [0, value];
-          }
-
-          data[prop][index] = projection(a)[index];
-
-          var diff = data[prop][index] - old;
-
-          roi.attr(origin, +roi.attr(origin) + diff);
-
-          if (shape != undefined) {
-            roi.attr(shape, +roi.attr(shape) - diff);
-          }
-
-          d3.select('#domain_modified')
-              .attr('value', true);
+          dispatch.call('updateROI');
         });
   }
 
-  onChange('#lon-start', 'start', 0, true, 'x', 'width');
-
-  onChange('#lat-start', 'start', 1, false, 'y', 'height');
-
-  onChange('#lon-stop', 'stop', 0, true, 'width');
-
-  onChange('#lat-stop', 'stop', 1, false, 'height');
-
-  var tooltip = svg.append('text')
-      .attr('x', 10)
-      .attr('y', 20)
-      .style('fill', 'black'); 
-
-  svg.on('mousemove', function() {
-    var coord = d3.mouse(this);
-
-    var geoCoord = projection.invert(coord);
-
-    tooltip.html(f(geoCoord[0]) + ' &deg;' + ' ' + f(geoCoord[1]) + ' &deg;');    
-  });
-
+  // load the data, setup the projection and start drawing
   d3.json(window.location.origin + '/static/js/world.json', function(error, world) {
     if (error) throw error;
 
-    var countries = topojson.feature(world, world.objects.countries).features,
-      neighbors = topojson.neighbors(world.objects.countries.geometries);
+    var f = d3.format('.2f');
+    var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+    var projection = d3.geoEquirectangular();
+    
+    create_control('lon', 'start', projection); 
+
+    create_control('lon', 'stop', projection);
+
+    create_control('lat', 'start', projection);
+
+    create_control('lat', 'stop', projection);
+    
+    dispatch.on('updateROI', function() {
+      data.start = projection(geoCoord('start'));
+
+      data.stop = projection(geoCoord('stop'));
+
+      d3.select('.roi')
+          .attr('x', data.start[0])
+          .attr('y', data.start[1])
+          .attr('width', data.stop[0] - data.start[0])
+          .attr('height', data.stop[1] - data.start[1]);
+    });
+
+    svg.on('mousemove', function() {
+      var coords = d3.mouse(this);
+
+      var geoCoords = projection.invert(coords);
+
+      d3.select('.coords')
+          .html(f(geoCoords[0]) + ' &deg;, ' + f(geoCoords[1]) + '&deg;');
+    });
+
+    var countries = topojson.feature(world, world.objects.countries);
+    var neighbors = topojson.neighbors(world.objects.countries.geometries);
+
+    projection.fitExtent([[0, header], [width, height]], countries);
+
+    var path = d3.geoPath(projection);
+    var graticule = d3.geoGraticule();
+
+    svg.append('path')
+        .datum(graticule)
+        .attr('class', 'graticule')
+        .attr('d', path);
+
+    data.start = projection(geoCoord('start'));
+
+    data.stop = projection(geoCoord('stop'));
+
+    svg.append('rect')
+        .attr('x', data.start[0])
+        .attr('y', data.start[1])
+        .attr('width', data.stop[0] - data.start[0])
+        .attr('height', data.stop[1] - data.start[1])
+        .attr('class', 'roi');
 
     svg.selectAll('.country')
-        .data(countries)
+        .data(countries.features)
       .enter().insert('path', '.graticule')
         .attr('class', 'country')
         .attr('d', path)
-        .style('fill', function(d, i) { return color(d.color = d3.max(neighbors[i], function(n) { return countries[n].color; }) + 1 | 0); });
-
-    var boundaries = topojson.mesh(world, world.objects.countries, function(a, b) { return a !== b; });
-
-    svg.insert('path', '.graticule')
-        .datum(boundaries)
-        .attr('class', 'boundary')
-        .attr('d', path);
+        .attr('fill', function(d, i) {
+          return color(d.color = d3.max(neighbors[i], function(n) {
+            return countries.features[n].color;
+          }) + 1 | 0);
+        });
   });
 });
 
