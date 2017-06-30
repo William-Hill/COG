@@ -185,6 +185,8 @@ YAHOO.util.Event.onDOMReady(function() {
           .attr('y', data.start[1])
           .attr('width', data.stop[0] - data.start[0])
           .attr('height', data.stop[1] - data.start[1]);
+
+      d3.select('#domain_modified').attr('value', 'true'); 
     });
 
     svg.on('mousemove', function() {
