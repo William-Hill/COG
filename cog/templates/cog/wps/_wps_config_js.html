@@ -81,45 +81,40 @@ function load_domains(dispatch) {
       .text(function(d) { return d.name; });
 }
 
-function clear_regrid() {
-  d3.select('#gaussian-control')
-      .remove();
-
-  d3.select('#uniform-control')
-      .remove();
-}
-
 function load_regrid() {
-  var gaussian = `<td></td>
-    <td>
-      <input id="gaussian-lats" type="number" placeholder="Lats" />
-    </td>`;
-  var uniform = `<td></td>
-    <td>
-      <input id="uniform-lons" type="number" placeholder="Lons" />
-      <input id="uniform-lats" type="number" placeholder="Lats" />
-    </td>`;
+  var gaussian = `
+      <input name="gaussian-lats" id="gaussian-lats" type="number" placeholder="Lats" />
+  `;
+  var uniform = `
+      <input name="uniform-lons" id="uniform-lons" type="number" placeholder="Lons" />
+      <input name="uniform-lats" id="uniform-lats" type="number" placeholder="Lats" />
+  `;
 
   d3.select('#regrid')
       .on('change', function() {
         var gridType = regrid[this.selectedIndex];
 
         if (gridType === 'Gaussian') {
-          clear_regrid();
-          
-          d3.select('#configuration')
-              .append('tr')
-              .attr('id', 'gaussian-control')
+          d3.select('#regrid-control')
+              .remove();
+
+          d3.select('#regrid-col')
+              .append('div')
+              .attr('id', 'regrid-control')
+              .style('display', 'inline')
               .html(gaussian);
         } else if (gridType === 'Uniform') {
-          clear_regrid();
+          d3.select('#regrid-control')
+              .remove();
 
-          d3.select('#configuration')
-              .append('tr')
-              .attr('id', 'uniform-control')
+          d3.select('#regrid-col')
+              .append('div')
+              .attr('id', 'regrid-control')
+              .style('display', 'inline')
               .html(uniform);
         } else {
-          clear_regrid();
+          d3.select('#regrid-control')
+              .remove();
         }
       })
       .selectAll('option')
