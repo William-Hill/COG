@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 INVALID_CHARS = "[<>&#%{}\[\]\$]"
 
-WPS_SERVER = '10.5.5.5:8001'
+WPS_SERVER = 'aims2.llnl.gov'
 
 def get_method_param(request, key):
     if request.method == 'GET':
