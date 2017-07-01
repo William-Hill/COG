@@ -11,7 +11,7 @@
 {% block main %}
 
 <div class="yui-skin-sam">
-  <form action="{% url 'wps_process' %}" method="POST">
+  <form name="configuration" action="{% url 'wps_process' %}" onsubmit="return validateForm();" method="POST">
     <input type="hidden" name="domain_modified" id="domain_modified" value="false" />
     <input type="hidden" name="files" id="files" value="{{ files|join:',' }}" />
     <table id="configuration">

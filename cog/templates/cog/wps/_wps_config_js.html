@@ -123,6 +123,34 @@ function load_regrid() {
       .text(function(d) { return d; });
 }
 
+function validateForm() {
+  var form = document.forms['configuration'];
+
+  if (form.variable.value === 'None') {
+    alert('Invalid variable.');
+
+    return false;
+  }
+
+  var regrid = form.regrid.value;
+
+  if (regrid === 'Gaussian') {
+    if (form['gaussian-lats'].value === '') {
+      alert('Enter the number of latitudes for the Gaussian grid.');
+
+      return false;
+    }
+  } else if (regrid == 'Uniform') {
+    if (form['uniform-lons'].value === '' || form['uniform-lats'].value === '') {
+      alert('Enter both the number of longitudes and latitudes for the Uniform grid.');
+
+      return false;
+    }
+  }
+
+  return true;
+}
+
 YAHOO.util.Event.onDOMReady(function() {
   var dispatch = d3.dispatch('updateROI');
 
