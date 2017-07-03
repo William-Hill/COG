@@ -74,12 +74,8 @@ time_freq_map = {
     'mon': 'Month',
     'yr': 'Year',
 }
-
 @csrf_exempt
 def wps_process(request):
-    data = ''
-    filename = 'test.py'
-
     buf = StringIO.StringIO()
 
     buf.write("import cwt\nimport time\n\n")
@@ -144,6 +140,10 @@ def wps_process(request):
         buf.write("regrid = cwt.Gridder(grid='uniform~{}x{}')\n\n".format(lons, lats))
 
     process = get_method_param(request, 'process')
+
+    _, process = process.split('.')
+
+    filename = '{}.py'.format(process)
 
     buf.write("proc = wps.get_process('{}')\n\n".format(process))
 
