@@ -79,6 +79,46 @@ function load_domains(dispatch) {
       .data(domains)
     .enter().append('option')
       .text(function(d) { return d.name; });
+
+  d3.select('#add-dimension')
+        .on('click', function() {
+          var uuid = Date.now();
+
+          var new_dim = d3.select('#domain')
+                .select('tbody')
+                .insert('tr', '#time')
+                .attr('id', 'dim-' + uuid);
+
+          var dims = d3.select('#dimensions')
+                .property('value');
+
+          dims = dims.split('|').filter(function(i) { return i !== ''; });
+
+          dims.push(uuid.toString());
+
+          d3.select('#dimensions')
+                .attr('value', dims.join('|'))
+
+          new_dim.html(`
+              <td>
+                <input name="dim-` + uuid + `-name" type="text" placeholder="Name" />
+                <input type="button" value="Remove" onclick="removeDimension('dim-` + uuid + `'); return false;" />
+              </td>
+              <td>
+                <label for="start">Start</label>
+                <input name="dim-` + uuid + `-start" type="number" />
+                <label for="stop">Stop</label>
+                <input name="dim-` + uuid + `-stop" type="number" />
+                <label for="step">Step</label>
+                <input name="dim-` + uuid + `-step" type="number" value="1" />
+              </td>
+              `);
+        });
+}
+
+function removeDimension(uuid) {
+  d3.select('#' + uuid)
+        .remove();
 }
 
 function load_regrid() {

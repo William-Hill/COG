@@ -74,6 +74,28 @@ time_freq_map = {
     'mon': 'Month',
     'yr': 'Year',
 }
+
+def dimension(request, prefix, crs=None):
+    name = get_method_param(request, prefix + '-name')
+
+    start = get_method_param(request, prefix + '-start')
+
+    stop = get_method_param(request, prefix + '-stop')
+
+    step = get_method_param(request, prefix + '-step')
+
+    if name is not None:
+        prefix = name
+
+    if crs is not None:
+        data = "\tcwt.Dimension('{}', '{}', '{}', '{}'".format(prefix, start, stop, crs)
+    else:
+        data = "\tcwt.Dimension('{}', {}, {}".format(prefix, start, stop)
+
+    data += ", step={}),\n".format(step)
+
+    return data
+
 @csrf_exempt
 def wps_process(request):
     buf = StringIO.StringIO()
@@ -98,31 +120,18 @@ def wps_process(request):
     domain_modified = get_method_param(request, 'domain_modified')
 
     if domain_modified:
-        lon_start = get_method_param(request, 'lon-start')
-
-        lon_stop = get_method_param(request, 'lon-stop')
-
-        lon_step = get_method_param(request, 'lon-step')
-
-        lat_start = get_method_param(request, 'lat-start')
-
-        lat_stop = get_method_param(request, 'lat-stop')
-
-        lat_step = get_method_param(request, 'lat-step')
-
-        time_start = get_method_param(request, 'time-start')
-
-        time_stop = get_method_param(request, 'time-stop')
-
-        time_step = get_method_param(request, 'time-step')
+        dimensions = get_method_param(request, 'dimensions').split('|')
 
         buf.write("domain = cwt.Domain([\n")
 
-        buf.write("\tcwt.Dimension('time', '{}', '{}', 'timestamps', step={}),\n".format(time_start, time_stop, time_step))
+        buf.write(dimension(request, 'time', 'timestamps'))
 
-        buf.write("\tcwt.Dimension('longitude', {}, {}, step={}),\n".format(lon_start, lon_stop, lon_step))
+        buf.write(dimension(request, 'lon'))
 
-        buf.write("\tcwt.Dimension('latitude', {}, {}, step={}),\n".format(lat_start, lat_stop, lat_step))
+        buf.write(dimension(request, 'lat'))
+
+        for dim in dimensions:
+            buf.write(dimension(request, 'dim-' + dim))
 
         buf.write("])\n\n")
 

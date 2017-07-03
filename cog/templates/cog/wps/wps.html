@@ -60,16 +60,18 @@
     <br />
     <h1 class="title">Domain</h1>
     <div class="span-6">
-      <table>
+      <input name="dimensions" id="dimensions" type="hidden" />
+      <table id="domain">
         <tr>
           <td>
             <label for="domains"><strong>Domains</strong></label>
           </td>
           <td>
             <select id="domains"></select>
+            <input id="add-dimension" type="button" value="Add" />
           </td>
         </tr>
-        <tr>
+        <tr id="time">
         {%  if time_freq %}
           <td><strong>Time</strong> ({{ time_freq }})</td>
         {% else %}
@@ -78,62 +80,32 @@
           <td>
             <label for="start">Start</label>
             <input name="time-start" id="time-start" type="datetime" placeholder="Y/M/D H:M:S" value="{{ time.0|date:'Y/m/d g:i:s' }}" />
-          </td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>
             <label for="stop">Stop</label>
             <input name="time-stop" id="time-stop" type="datetime" placeholder="Y/M/D H:M:S" value="{{ time.1|date:'Y/m/d g:i:s' }}" />
-          </td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>
             <label for="step">Step</label>
             <input name="time-step" id="time-step" type="number" value="1" />
           </td>
         </tr>
-        <tr>
-          <td><strong>Latitude</strong> (Degrees)</td>
-          <td>
-            <label for="lat-start">Start</label>
-            <input name="lat-start" id="lat-start" type="number" value="90" />
-          </td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>
-            <label for="lat-stop">Stop</label>
-            <input name="lat-stop" id="lat-stop" type="number" value="-90" />
-          </td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>
-            <label for="lat-step">Step</label>
-            <input name="lat-step" id="lat-step" type="number" value="1" />
-          </td>
-        </tr>
-        <tr>
+        <tr id="longitude">
           <td><strong>Longitude</strong> (Degrees)</td>
           <td>
             <label for="lon-start">Start</label>
             <input name="lon-start" id="lon-start" type="number" value="0" />
-          </td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>
             <label for="lon-stop">Stop</label>
             <input name="lon-stop" id="lon-stop" type="number" value="360" />
-          </td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>
             <label for="lon-step">Step</label>
             <input name="lon-step" id="lon-step" type="number" value="1" />
+          </td>
+        </tr>
+        <tr id="latitude">
+          <td><strong>Latitude</strong> (Degrees)</td>
+          <td>
+            <label for="lat-start">Start</label>
+            <input name="lat-start" id="lat-start" type="number" value="90" />
+            <label for="lat-stop">Stop</label>
+            <input name="lat-stop" id="lat-stop" type="number" value="-90" />
+            <label for="lat-step">Step</label>
+            <input name="lat-step" id="lat-step" type="number" value="1" />
           </td>
         </tr>
       </table>
