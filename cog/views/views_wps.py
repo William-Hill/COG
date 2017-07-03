@@ -130,14 +130,32 @@ def wps_process(request):
 
         buf.write("])\n\n")
 
+    regrid = get_method_param(request, 'regrid')
+
+    if regrid == 'Gaussian':
+        lats = get_method_param(request, 'gaussian-lats')
+
+        buf.write("regrid = cwt.Gridder(grid='gaussian~{}')\n\n".format(lats))
+    elif regrid == 'Uniform':
+        lons = get_method_param(request, 'uniform-lons')
+
+        lats = get_method_param(request, 'uniform-lats')
+
+        buf.write("regrid = cwt.Gridder(grid='uniform~{}x{}')\n\n".format(lons, lats))
+
     process = get_method_param(request, 'process')
 
     buf.write("proc = wps.get_process('{}')\n\n".format(process))
 
+    buf.write("wps.execute(proc, inputs=inputs")
+
     if domain_modified:
-        buf.write("wps.execute(proc, inputs=inputs, domain=domain)\n\n")
-    else:
-        buf.write("wps.execute(proc, inputs=inputs)\n\n")
+        buf.write(", domain=domain")
+
+    if regrid != 'None':
+        buf.write(", gridder=regrid")
+
+    buf.write(")\n\n")
 
     buf.write("while proc.processing:\n")
 
