@@ -28,6 +28,10 @@
   stroke-width: 0.5px;
 }
 
+td#dimension > input {
+  width: 95%;
+}
+
 </style>
 
 <script type="text/javascript">
@@ -104,7 +108,7 @@ function load_domains(dispatch) {
                 <input name="dim-` + uuid + `-name" type="text" placeholder="Name" />
                 <input type="button" value="Remove" onclick="removeDimension('dim-` + uuid + `'); return false;" />
               </td>
-              <td>
+              <td id="dimension">
                 <label for="start">Start</label>
                 <input name="dim-` + uuid + `-start" type="number" />
                 <label for="stop">Stop</label>

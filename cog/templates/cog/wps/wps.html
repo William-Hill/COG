@@ -66,7 +66,7 @@
           <td>
             <label for="domains"><strong>Domains</strong></label>
           </td>
-          <td>
+          <td id="dimension">
             <select id="domains"></select>
             <input id="add-dimension" type="button" value="Add" />
           </td>
@@ -77,7 +77,7 @@
         {% else %}
           <td><strong>Time</strong></td>
         {% endif %}
-          <td>
+          <td id="dimension">
             <label for="start">Start</label>
             <input name="time-start" id="time-start" type="datetime" placeholder="Y/M/D H:M:S" value="{{ time.0|date:'Y/m/d g:i:s' }}" />
             <label for="stop">Stop</label>
@@ -88,24 +88,34 @@
         </tr>
         <tr id="longitude">
           <td><strong>Longitude</strong> (Degrees)</td>
-          <td>
+          <td id="dimension">
             <label for="lon-start">Start</label>
-            <input name="lon-start" id="lon-start" type="number" value="0" />
+            <br />
+            <input name="lon-start" id="lon-start" type="number" value="0" min="0" max="360" step="0.01" />
+            <br />
             <label for="lon-stop">Stop</label>
-            <input name="lon-stop" id="lon-stop" type="number" value="360" />
+            <br />
+            <input name="lon-stop" id="lon-stop" type="number" value="360" min="0" max="360" step="0.01"/>
+            <br />
             <label for="lon-step">Step</label>
-            <input name="lon-step" id="lon-step" type="number" value="1" />
+            <br />
+            <input name="lon-step" id="lon-step" type="number" value="1" min="0" max="360" />
           </td>
         </tr>
         <tr id="latitude">
           <td><strong>Latitude</strong> (Degrees)</td>
-          <td>
+          <td id="dimension">
             <label for="lat-start">Start</label>
-            <input name="lat-start" id="lat-start" type="number" value="90" />
+            <br />
+            <input name="lat-start" id="lat-start" type="number" value="90" min="-90" max="90" step="0.01" />
+            <br />
             <label for="lat-stop">Stop</label>
-            <input name="lat-stop" id="lat-stop" type="number" value="-90" />
+            <br />
+            <input name="lat-stop" id="lat-stop" type="number" value="-90" min="-90" max="90" step="0.01" />
+            <br />
             <label for="lat-step">Step</label>
-            <input name="lat-step" id="lat-step" type="number" value="1" />
+            <br />
+            <input name="lat-step" id="lat-step" type="number" value="1" min="0" max="180" />
           </td>
         </tr>
       </table>
