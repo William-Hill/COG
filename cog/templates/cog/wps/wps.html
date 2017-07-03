@@ -70,17 +70,21 @@
           </td>
         </tr>
         <tr>
+        {%  if time_freq %}
           <td><strong>Time</strong> ({{ time_freq }})</td>
+        {% else %}
+          <td><strong>Time</strong></td>
+        {% endif %}
           <td>
             <label for="start">Start</label>
-            <input name="time-start" id="time-start" type="datetime" value="{{ time.0|date:'Y/m/d g:i:s' }}" />
+            <input name="time-start" id="time-start" type="datetime" placeholder="Y/M/D H:M:S" value="{{ time.0|date:'Y/m/d g:i:s' }}" />
           </td>
         </tr>
         <tr>
           <td></td>
           <td>
             <label for="stop">Stop</label>
-            <input name="time-stop" id="time-stop" type="datetime" value="{{ time.1|date:'Y/m/d g:i:s' }}" />
+            <input name="time-stop" id="time-stop" type="datetime" placeholder="Y/M/D H:M:S" value="{{ time.1|date:'Y/m/d g:i:s' }}" />
           </td>
         </tr>
         <tr>

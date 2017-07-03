@@ -205,7 +205,7 @@ def wps(request):
         context['wps_server'] = WPS_SERVER
         context['files'] = files
         context['time'] = [start, stop]
-        context['time_freq'] = time_freq_map.get(time_freq, 'Unknown')
+        context['time_freq'] = time_freq_map.get(time_freq, None)
     else:
         context['variables'] = ['None']
 
