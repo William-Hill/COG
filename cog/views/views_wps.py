@@ -123,6 +123,8 @@ def wps_process(request):
     if domain_modified:
         dimensions = get_method_param(request, 'dimensions').split('|')
 
+        dimensions = [x for x in dimensions if x != '']
+
         buf.write("domain = cwt.Domain([\n")
 
         buf.write(dimension(request, 'time', 'timestamps'))
