@@ -113,7 +113,8 @@ def wps_process(request):
     buf.write("inputs = [\n")
 
     for f in files:
-        buf.write("\tcwt.Variable('{}', '{}'),\n".format(f, variable))
+        if f.split('/')[17] == variable:
+            buf.write("\tcwt.Variable('{}', '{}'),\n".format(f, variable))
 
     buf.write("]\n\n")
 
