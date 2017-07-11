@@ -311,6 +311,9 @@ wps.domReady = function() {
         .attr('class', 'graticule')
         .attr('d', path);
 
+    wps.resize = false;
+    wps.resizeDir = [false, false, false, false];
+
     wps.data.start = projection(wps.geoCoord('start'));
 
     wps.data.stop = projection(wps.geoCoord('stop'));
@@ -322,32 +325,78 @@ wps.domReady = function() {
         .attr('height', wps.data.stop[1] - wps.data.start[1])
         .attr('class', 'roi')
         .call(d3.drag()
+          .on('start', function() {
+            var bar = 20;
+            var x = +this.getAttribute('x');
+            var y = +this.getAttribute('y');
+            var width = +this.getAttribute('width');
+            var height = +this.getAttribute('height');
+
+            if (d3.event.x < (x + bar)) {
+              wps.resize = true;
+
+              wps.resizeDir[1] = true;
+            }
+
+            if (d3.event.x > (x + width - bar)) {
+              wps.resize = true;
+
+              wps.resizeDir[3] = true;
+            }
+
+            if (d3.event.y < (y + bar)) {
+              wps.resize = true;
+
+              wps.resizeDir[2] = true;
+            }
+
+            if (d3.event.y > (y + height - bar)) {
+              wps.resize = true;
+
+              wps.resizeDir[0] = true;
+            }
+          })
+          .on('end', function() {
+            wps.resize = false;
+
+            for (var i = 0; i < wps.resizeDir.length; i++) {
+              wps.resizeDir[i] = false;
+            }
+          })
           .on('drag', function() {
             var dx = d3.event.dx;
             var dy = d3.event.dy;
 
-            wps.data.start[0] += dx;
+            if (!wps.resize || wps.resizeDir[1]) {
+              wps.data.start[0] += dx;
 
-            if (wps.data.start[0] < bbox.start[0]) {
-              wps.data.start[0] = bbox.start[0];
+              if (wps.data.start[0] < bbox.start[0]) {
+                wps.data.start[0] = bbox.start[0];
+              }
             }
 
-            wps.data.start[1] += dy;
+            if (!wps.resize || wps.resizeDir[2]) {
+              wps.data.start[1] += dy;
 
-            if (wps.data.start[1] < bbox.start[1]) {
-              wps.data.start[1] = bbox.start[1];
+              if (wps.data.start[1] < bbox.start[1]) {
+                wps.data.start[1] = bbox.start[1];
+              }
             }
 
-            wps.data.stop[0] += dx;
+            if (!wps.resize || wps.resizeDir[3]) {
+              wps.data.stop[0] += dx;
 
-            if (wps.data.stop[0] > bbox.stop[0]) {
-              wps.data.stop[0] = bbox.stop[0];
+              if (wps.data.stop[0] > bbox.stop[0]) {
+                wps.data.stop[0] = bbox.stop[0];
+              }
             }
 
-            wps.data.stop[1] += dy;
+            if (!wps.resize || wps.resizeDir[0]) {
+              wps.data.stop[1] += dy;
 
-            if (wps.data.stop[1] > bbox.stop[1]) {
-              wps.data.stop[1] = bbox.stop[1];
+              if (wps.data.stop[1] > bbox.stop[1]) {
+                wps.data.stop[1] = bbox.stop[1];
+              }
             }
 
             dispatch.call('updateUIROI');
