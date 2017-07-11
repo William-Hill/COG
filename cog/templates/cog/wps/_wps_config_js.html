@@ -208,7 +208,7 @@ wps.validateForm = function() {
 }
 
 wps.domReady = function() {
-  var dispatch = d3.dispatch('updateROI');
+  var dispatch = d3.dispatch('updateROI', 'updateUIROI');
 
   wps.loadDomains(dispatch);
 
@@ -220,7 +220,6 @@ wps.domReady = function() {
 
   var width = rect.width;
   var height = width / 1.92;
-  var header = 30;
 
   var svg = d3.select('svg')
       .attr('width', width)
@@ -273,6 +272,17 @@ wps.domReady = function() {
 
       d3.select('#domain_modified').attr('value', 'true'); 
     });
+    
+    dispatch.on('updateUIROI', function() {
+      var start = projection.invert(wps.data.start);
+      var stop = projection.invert(wps.data.stop);
+
+      d3.select('#lon-start').attr('value', f(start[0].map(-180, 180, 0, 360)));
+      d3.select('#lon-stop').attr('value', f(stop[0].map(-180, 180, 0, 360)));
+
+      d3.select('#lat-start').attr('value', f(start[1]));
+      d3.select('#lat-stop').attr('value', f(stop[1]));
+    });
 
     svg.on('mousemove', function() {
       var coords = d3.mouse(this);
@@ -286,7 +296,12 @@ wps.domReady = function() {
     var countries = topojson.feature(world, world.objects.countries);
     var neighbors = topojson.neighbors(world.objects.countries.geometries);
 
-    projection.fitExtent([[0, header], [width, height]], countries);
+    projection.fitSize([width, height], countries);
+
+    var bbox = {};
+
+    bbox.start = projection([-180, 90]);
+    bbox.stop = projection([180, -90]);
 
     var path = d3.geoPath(projection);
     var graticule = d3.geoGraticule();
@@ -305,7 +320,41 @@ wps.domReady = function() {
         .attr('y', wps.data.start[1])
         .attr('width', wps.data.stop[0] - wps.data.start[0])
         .attr('height', wps.data.stop[1] - wps.data.start[1])
-        .attr('class', 'roi');
+        .attr('class', 'roi')
+        .call(d3.drag()
+          .on('drag', function() {
+            var dx = d3.event.dx;
+            var dy = d3.event.dy;
+
+            wps.data.start[0] += dx;
+
+            if (wps.data.start[0] < bbox.start[0]) {
+              wps.data.start[0] = bbox.start[0];
+            }
+
+            wps.data.start[1] += dy;
+
+            if (wps.data.start[1] < bbox.start[1]) {
+              wps.data.start[1] = bbox.start[1];
+            }
+
+            wps.data.stop[0] += dx;
+
+            if (wps.data.stop[0] > bbox.stop[0]) {
+              wps.data.stop[0] = bbox.stop[0];
+            }
+
+            wps.data.stop[1] += dy;
+
+            if (wps.data.stop[1] > bbox.stop[1]) {
+              wps.data.stop[1] = bbox.stop[1];
+            }
+
+            dispatch.call('updateUIROI');
+
+            dispatch.call('updateROI');
+          })
+        );
 
     svg.selectAll('.country')
         .data(countries.features)
