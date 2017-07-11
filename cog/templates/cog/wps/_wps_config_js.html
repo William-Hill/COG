@@ -40,7 +40,15 @@ td#dimension > input[type="datetime"] {
 
 <script type="text/javascript">
 
-var domains = [
+Number.prototype.map = function(in_min, in_max, out_min, out_max) {
+  return (this - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+wps = {};
+
+wps.data = {};
+
+wps.DOMAINS = [
   { name: 'World', lat: [90, -90],  lon: [0, 360] },
   { name: 'Northern Hemisphere', lat: [90, 0] },
   { name: 'Southern Hemisphere', lat: [0, -90] },
@@ -49,25 +57,21 @@ var domains = [
   { name: 'Antarctic Zone', lat: [-66.6, -90] },
 ];
 
-var regrid = [
+wps.REGRID = [
   'None', 'Gaussian', 'Uniform'
 ];
 
-Number.prototype.map = function(in_min, in_max, out_min, out_max) {
-  return (this - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-
-function geoCoord(postFix) {
+wps.geoCoord = function(postFix) {
   return [
     (+d3.select('#lon-' + postFix).property('value')).map(0, 360, -180, 180),
     +d3.select('#lat-' + postFix).property('value'),
     ];
 }
 
-function load_domains(dispatch) {
+wps.loadDomains = function(dispatch) {
   d3.select('#domains')
       .on('change', function() {
-        var domain = domains[this.selectedIndex];
+        var domain = wps.DOMAINS[this.selectedIndex];
 
         if (domain.hasOwnProperty('lon')) {
           d3.select('#lon-start').attr('value', domain.lon[0]);
@@ -81,10 +85,14 @@ function load_domains(dispatch) {
           d3.select('#lat-stop').attr('value', domain.lat[1]);
         }
 
+        wps.data.start = wps.projection(wps.geoCoord('start'));
+
+        wps.data.stop = wps.projection(wps.geoCoord('stop'));
+
         dispatch.call('updateROI');
       })
       .selectAll('option')
-      .data(domains)
+      .data(wps.DOMAINS)
     .enter().append('option')
       .text(function(d) { return d.name; });
 
@@ -124,12 +132,12 @@ function load_domains(dispatch) {
         });
 }
 
-function removeDimension(uuid) {
+wps.removeDimension = function(uuid) {
   d3.select('#' + uuid)
         .remove();
 }
 
-function load_regrid() {
+wps.loadRegrid = function() {
   var gaussian = `
       <input name="gaussian-lats" id="gaussian-lats" type="number" placeholder="Lats" />
   `;
@@ -140,7 +148,7 @@ function load_regrid() {
 
   d3.select('#regrid')
       .on('change', function() {
-        var gridType = regrid[this.selectedIndex];
+        var gridType = wps.REGRID[this.selectedIndex];
 
         if (gridType === 'Gaussian') {
           d3.select('#regrid-control')
@@ -166,12 +174,12 @@ function load_regrid() {
         }
       })
       .selectAll('option')
-      .data(regrid)
+      .data(wps.REGRID)
     .enter().append('option')
       .text(function(d) { return d; });
 }
 
-function validateForm() {
+wps.validateForm = function() {
   var form = document.forms['configuration'];
 
   if (form.variable.value === 'None') {
@@ -199,12 +207,12 @@ function validateForm() {
   return true;
 }
 
-YAHOO.util.Event.onDOMReady(function() {
+wps.domReady = function() {
   var dispatch = d3.dispatch('updateROI');
 
-  load_domains(dispatch);
+  wps.loadDomains(dispatch);
 
-  load_regrid();
+  wps.loadRegrid();
 
   var node = d3.select('#map').node();
 
@@ -213,7 +221,6 @@ YAHOO.util.Event.onDOMReady(function() {
   var width = rect.width;
   var height = width / 1.92;
   var header = 30;
-  var data = {};
 
   var svg = d3.select('svg')
       .attr('width', width)
@@ -230,6 +237,10 @@ YAHOO.util.Event.onDOMReady(function() {
   function create_control(dimension, postFix, projection) {
     d3.select('#' + dimension + '-' + postFix)
         .on('change', function() {
+          wps.data.start = projection(wps.geoCoord('start'));
+
+          wps.data.stop = projection(wps.geoCoord('stop'));
+
           dispatch.call('updateROI');
         });
   }
@@ -242,6 +253,8 @@ YAHOO.util.Event.onDOMReady(function() {
     var color = d3.scaleOrdinal(d3.schemeCategory20);
 
     var projection = d3.geoEquirectangular();
+
+    wps.projection = projection;
     
     create_control('lon', 'start', projection); 
 
@@ -252,15 +265,11 @@ YAHOO.util.Event.onDOMReady(function() {
     create_control('lat', 'stop', projection);
     
     dispatch.on('updateROI', function() {
-      data.start = projection(geoCoord('start'));
-
-      data.stop = projection(geoCoord('stop'));
-
       d3.select('.roi')
-          .attr('x', data.start[0])
-          .attr('y', data.start[1])
-          .attr('width', data.stop[0] - data.start[0])
-          .attr('height', data.stop[1] - data.start[1]);
+          .attr('x', wps.data.start[0])
+          .attr('y', wps.data.start[1])
+          .attr('width', wps.data.stop[0] - wps.data.start[0])
+          .attr('height', wps.data.stop[1] - wps.data.start[1]);
 
       d3.select('#domain_modified').attr('value', 'true'); 
     });
@@ -287,15 +296,15 @@ YAHOO.util.Event.onDOMReady(function() {
         .attr('class', 'graticule')
         .attr('d', path);
 
-    data.start = projection(geoCoord('start'));
+    wps.data.start = projection(wps.geoCoord('start'));
 
-    data.stop = projection(geoCoord('stop'));
+    wps.data.stop = projection(wps.geoCoord('stop'));
 
     svg.append('rect')
-        .attr('x', data.start[0])
-        .attr('y', data.start[1])
-        .attr('width', data.stop[0] - data.start[0])
-        .attr('height', data.stop[1] - data.start[1])
+        .attr('x', wps.data.start[0])
+        .attr('y', wps.data.start[1])
+        .attr('width', wps.data.stop[0] - wps.data.start[0])
+        .attr('height', wps.data.stop[1] - wps.data.start[1])
         .attr('class', 'roi');
 
     svg.selectAll('.country')
@@ -309,6 +318,8 @@ YAHOO.util.Event.onDOMReady(function() {
           }) + 1 | 0);
         });
   });
-});
+}
+
+YAHOO.util.Event.onDOMReady(wps.domReady);
 
 </script>
