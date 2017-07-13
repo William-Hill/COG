@@ -44,22 +44,23 @@ Number.prototype.map = function(in_min, in_max, out_min, out_max) {
   return (this - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-wps = {};
-
-wps.data = {};
-
-wps.DOMAINS = [
-  { name: 'World', lat: [90, -90],  lon: [0, 360] },
-  { name: 'Northern Hemisphere', lat: [90, 0] },
-  { name: 'Southern Hemisphere', lat: [0, -90] },
-  { name: 'Tropics', lat: [23.4, -23.4] },
-  { name: 'Arctic Zone', lat: [90, 66.6] },
-  { name: 'Antarctic Zone', lat: [-66.6, -90] },
-];
-
-wps.REGRID = [
-  'None', 'Gaussian', 'Uniform'
-];
+wps = {
+  resize: false,
+  move: false,
+  resizeDir: [false, false, false, false],
+  data: {},
+  DOMAINS: [
+    { name: 'World', lat: [90, -90],  lon: [0, 360] },
+    { name: 'Northern Hemisphere', lat: [90, 0] },
+    { name: 'Southern Hemisphere', lat: [0, -90] },
+    { name: 'Tropics', lat: [23.4, -23.4] },
+    { name: 'Arctic Zone', lat: [90, 66.6] },
+    { name: 'Antarctic Zone', lat: [-66.6, -90] },
+  ],
+  REGRID: [
+    'None', 'Gaussian', 'Uniform'
+  ],
+};
 
 wps.geoCoord = function(postFix) {
   return [
@@ -207,8 +208,106 @@ wps.validateForm = function() {
   return true;
 }
 
+wps.roiDragStart = function() {
+  var bar = 20;
+  var x = +this.getAttribute('x');
+  var y = +this.getAttribute('y');
+  var width = +this.getAttribute('width');
+  var height = +this.getAttribute('height');
+
+  wps.resizeDir[0] = (d3.event.y > (y + height - bar));
+  wps.resizeDir[1] = (d3.event.x < (x + bar));
+  wps.resizeDir[2] = (d3.event.y < (y + bar));
+  wps.resizeDir[3] = (d3.event.x > (x + width - bar));
+
+  var elementTrue = function(element, index, array) {
+    return element;
+  };
+
+  if (wps.resizeDir.some(elementTrue)) {
+    wps.resize = true; 
+  } else {
+    wps.move = true;
+  }
+}
+
+wps.roiDragEnd = function() {
+  wps.move = false;
+
+  wps.resize = false;
+
+  for (var i = 0; i < wps.resizeDir.length; i++) {
+    wps.resizeDir[i] = false;
+  }
+}
+
+wps.roiDrag = function() {
+  var bbox = {
+    start: wps.projection([-180, 90]),
+    stop: wps.projection([180, -90]),
+  };
+  console.log(wps.move);
+  if (wps.resize) {
+    var dx = d3.event.dx;
+    var dy = d3.event.dy;
+
+    if (dx != 0) {
+      if (wps.resizeDir[1]) {
+        wps.data.start[0] += dx;
+      }
+      
+      if (wps.resizeDir[3]) {
+        wps.data.stop[0] += dx;
+      }
+    }
+
+    if (dy != 0) {
+      if (wps.resizeDir[2]) {
+        wps.data.start[1] += dy;
+      }
+
+      if (wps.resizeDir[0]) {
+        wps.data.stop[1] += dy;
+      }
+    }
+  } else if (wps.move) {
+    var x = +this.getAttribute('x');
+    var y = +this.getAttribute('y');
+    var width = +this.getAttribute('width');
+    var height = +this.getAttribute('height');
+    var dx = d3.event.dx;
+    var dy = d3.event.dy;
+
+    if ((dx <= -1 && x != bbox.start[0]) || (dx >= 1 && (x + width) != bbox.stop[0])) {
+      wps.data.start[0] += dx;
+
+      if (wps.data.start[0] < bbox.start[0]) wps.data.start[0] = bbox.start[0];
+
+      wps.data.stop[0] += dx;
+
+      if (wps.data.stop[0] > bbox.stop[0]) wps.data.stop[0] = bbox.stop[0];
+    }
+
+    if ((dy <= -1 && y != bbox.start[1]) || (dy >= 1 && (y + height) != bbox.stop[1])) {
+      wps.data.start[1] += dy;
+
+      if (wps.data.start[1] < bbox.start[1]) wps.data.start[1] = bbox.start[1];
+
+      wps.data.stop[1] += dy;
+
+      if (wps.data.stop[1] > bbox.stop[1]) wps.data.stop[1] = bbox.stop[1];
+    }
+  }
+
+  wps.dispatch.call('updateUIROI');
+
+  wps.dispatch.call('updateROI');
+}
+
 wps.domReady = function() {
   var dispatch = d3.dispatch('updateROI', 'updateUIROI');
+
+  wps.dispatch = dispatch;
 
   wps.loadDomains(dispatch);
 
@@ -298,11 +397,6 @@ wps.domReady = function() {
 
     projection.fitSize([width, height], countries);
 
-    var bbox = {};
-
-    bbox.start = projection([-180, 90]);
-    bbox.stop = projection([180, -90]);
-
     var path = d3.geoPath(projection);
     var graticule = d3.geoGraticule();
 
@@ -310,9 +404,6 @@ wps.domReady = function() {
         .datum(graticule)
         .attr('class', 'graticule')
         .attr('d', path);
-
-    wps.resize = false;
-    wps.resizeDir = [false, false, false, false];
 
     wps.data.start = projection(wps.geoCoord('start'));
 
@@ -325,84 +416,9 @@ wps.domReady = function() {
         .attr('height', wps.data.stop[1] - wps.data.start[1])
         .attr('class', 'roi')
         .call(d3.drag()
-          .on('start', function() {
-            var bar = 20;
-            var x = +this.getAttribute('x');
-            var y = +this.getAttribute('y');
-            var width = +this.getAttribute('width');
-            var height = +this.getAttribute('height');
-
-            if (d3.event.x < (x + bar)) {
-              wps.resize = true;
-
-              wps.resizeDir[1] = true;
-            }
-
-            if (d3.event.x > (x + width - bar)) {
-              wps.resize = true;
-
-              wps.resizeDir[3] = true;
-            }
-
-            if (d3.event.y < (y + bar)) {
-              wps.resize = true;
-
-              wps.resizeDir[2] = true;
-            }
-
-            if (d3.event.y > (y + height - bar)) {
-              wps.resize = true;
-
-              wps.resizeDir[0] = true;
-            }
-          })
-          .on('end', function() {
-            wps.resize = false;
-
-            for (var i = 0; i < wps.resizeDir.length; i++) {
-              wps.resizeDir[i] = false;
-            }
-          })
-          .on('drag', function() {
-            var dx = d3.event.dx;
-            var dy = d3.event.dy;
-
-            if (!wps.resize || wps.resizeDir[1]) {
-              wps.data.start[0] += dx;
-
-              if (wps.data.start[0] < bbox.start[0]) {
-                wps.data.start[0] = bbox.start[0];
-              }
-            }
-
-            if (!wps.resize || wps.resizeDir[2]) {
-              wps.data.start[1] += dy;
-
-              if (wps.data.start[1] < bbox.start[1]) {
-                wps.data.start[1] = bbox.start[1];
-              }
-            }
-
-            if (!wps.resize || wps.resizeDir[3]) {
-              wps.data.stop[0] += dx;
-
-              if (wps.data.stop[0] > bbox.stop[0]) {
-                wps.data.stop[0] = bbox.stop[0];
-              }
-            }
-
-            if (!wps.resize || wps.resizeDir[0]) {
-              wps.data.stop[1] += dy;
-
-              if (wps.data.stop[1] > bbox.stop[1]) {
-                wps.data.stop[1] = bbox.stop[1];
-              }
-            }
-
-            dispatch.call('updateUIROI');
-
-            dispatch.call('updateROI');
-          })
+          .on('start', wps.roiDragStart)
+          .on('end', wps.roiDragEnd)
+          .on('drag', wps.roiDrag)
         );
 
     svg.selectAll('.country')
