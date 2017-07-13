@@ -60,6 +60,7 @@ wps = {
   REGRID: [
     'None', 'Gaussian', 'Uniform'
   ],
+  float2: d3.format('.2f'),
 };
 
 wps.geoCoord = function(postFix) {
@@ -69,67 +70,71 @@ wps.geoCoord = function(postFix) {
     ];
 }
 
-wps.loadDomains = function(dispatch) {
+wps.domainChange = function() {
+  var domain = wps.DOMAINS[this.selectedIndex];
+
+  var lon = domain.lon || [0, 360];
+  var lat = domain.lat || [90, -90];
+
+  d3.select('#lon-start').attr('value', lon[0]);
+
+  d3.select('#lon-stop').attr('value', lon[1]);
+
+  d3.select('#lat-start').attr('value', lat[0]);
+
+  d3.select('#lat-stop').attr('value', lat[1]);
+
+  wps.data.start = wps.projection(wps.geoCoord('start'));
+
+  wps.data.stop = wps.projection(wps.geoCoord('stop'));
+
+  wps.dispatch.call('updateROI');
+}
+
+wps.addDomainClick = function() {
+  var uuid = Date.now();
+
+  var new_dim = d3.select('#domain')
+        .select('tbody')
+        .insert('tr', '#time')
+        .attr('id', 'dim-' + uuid);
+
+  var dims = d3.select('#dimensions')
+        .property('value');
+
+  dims = dims.split('|').filter(function(i) { return i !== ''; });
+
+  dims.push(uuid.toString());
+
+  d3.select('#dimensions')
+        .attr('value', dims.join('|'))
+
+  new_dim.html(`
+      <td>
+        <input name="dim-` + uuid + `-name" type="text" placeholder="Name" />
+        <input type="button" value="Remove" onclick="wps.removeDimension('dim-` + uuid + `'); return false;" />
+      </td>
+      <td id="dimension">
+        <label for="start">Start</label>
+        <input name="dim-` + uuid + `-start" type="number" />
+        <label for="stop">Stop</label>
+        <input name="dim-` + uuid + `-stop" type="number" />
+        <label for="step">Step</label>
+        <input name="dim-` + uuid + `-step" type="number" value="1" />
+      </td>
+    `);
+}
+
+wps.loadDomains = function() {
   d3.select('#domains')
-      .on('change', function() {
-        var domain = wps.DOMAINS[this.selectedIndex];
-
-        var lon = domain.lon || [0, 360];
-        var lat = domain.lat || [90, -90];
-
-        d3.select('#lon-start').attr('value', lon[0]);
-
-        d3.select('#lon-stop').attr('value', lon[1]);
-
-        d3.select('#lat-start').attr('value', lat[0]);
-
-        d3.select('#lat-stop').attr('value', lat[1]);
-
-        wps.data.start = wps.projection(wps.geoCoord('start'));
-
-        wps.data.stop = wps.projection(wps.geoCoord('stop'));
-
-        dispatch.call('updateROI');
-      })
+      .on('change', wps.domainChange)
       .selectAll('option')
       .data(wps.DOMAINS)
     .enter().append('option')
       .text(function(d) { return d.name; });
 
   d3.select('#add-dimension')
-        .on('click', function() {
-          var uuid = Date.now();
-
-          var new_dim = d3.select('#domain')
-                .select('tbody')
-                .insert('tr', '#time')
-                .attr('id', 'dim-' + uuid);
-
-          var dims = d3.select('#dimensions')
-                .property('value');
-
-          dims = dims.split('|').filter(function(i) { return i !== ''; });
-
-          dims.push(uuid.toString());
-
-          d3.select('#dimensions')
-                .attr('value', dims.join('|'))
-
-          new_dim.html(`
-              <td>
-                <input name="dim-` + uuid + `-name" type="text" placeholder="Name" />
-                <input type="button" value="Remove" onclick="removeDimension('dim-` + uuid + `'); return false;" />
-              </td>
-              <td id="dimension">
-                <label for="start">Start</label>
-                <input name="dim-` + uuid + `-start" type="number" />
-                <label for="stop">Stop</label>
-                <input name="dim-` + uuid + `-stop" type="number" />
-                <label for="step">Step</label>
-                <input name="dim-` + uuid + `-step" type="number" value="1" />
-              </td>
-              `);
-        });
+        .on('click', wps.addDomainClick);
 }
 
 wps.removeDimension = function(uuid) {
@@ -137,7 +142,8 @@ wps.removeDimension = function(uuid) {
         .remove();
 }
 
-wps.loadRegrid = function() {
+wps.regridChange = function() {
+  var gridType = wps.REGRID[this.selectedIndex];
   var gaussian = `
       <input name="gaussian-lats" id="gaussian-lats" type="number" placeholder="Lats" />
   `;
@@ -146,33 +152,34 @@ wps.loadRegrid = function() {
       <input name="uniform-lats" id="uniform-lats" type="number" placeholder="Lats" />
   `;
 
+
+  if (gridType === 'Gaussian') {
+    d3.select('#regrid-control')
+        .remove();
+
+    d3.select('#regrid-col')
+        .append('div')
+        .attr('id', 'regrid-control')
+        .style('display', 'inline')
+        .html(gaussian);
+  } else if (gridType === 'Uniform') {
+    d3.select('#regrid-control')
+        .remove();
+
+    d3.select('#regrid-col')
+        .append('div')
+        .attr('id', 'regrid-control')
+        .style('display', 'inline')
+        .html(uniform);
+  } else {
+    d3.select('#regrid-control')
+        .remove();
+  }
+}
+
+wps.loadRegrid = function() {
   d3.select('#regrid')
-      .on('change', function() {
-        var gridType = wps.REGRID[this.selectedIndex];
-
-        if (gridType === 'Gaussian') {
-          d3.select('#regrid-control')
-              .remove();
-
-          d3.select('#regrid-col')
-              .append('div')
-              .attr('id', 'regrid-control')
-              .style('display', 'inline')
-              .html(gaussian);
-        } else if (gridType === 'Uniform') {
-          d3.select('#regrid-control')
-              .remove();
-
-          d3.select('#regrid-col')
-              .append('div')
-              .attr('id', 'regrid-control')
-              .style('display', 'inline')
-              .html(uniform);
-        } else {
-          d3.select('#regrid-control')
-              .remove();
-        }
-      })
+      .on('change', wps.regridChange)
       .selectAll('option')
       .data(wps.REGRID)
     .enter().append('option')
@@ -245,7 +252,7 @@ wps.roiDrag = function() {
     start: wps.projection([-180, 90]),
     stop: wps.projection([180, -90]),
   };
-  console.log(wps.move);
+
   if (wps.resize) {
     var dx = d3.event.dx;
     var dy = d3.event.dy;
@@ -303,12 +310,63 @@ wps.roiDrag = function() {
   wps.dispatch.call('updateROI');
 }
 
+wps.updateROI = function() {
+  d3.select('.roi')
+      .attr('x', wps.data.start[0])
+      .attr('y', wps.data.start[1])
+      .attr('width', wps.data.stop[0] - wps.data.start[0])
+      .attr('height', wps.data.stop[1] - wps.data.start[1]);
+
+  d3.select('#domain_modified').attr('value', 'true'); 
+}
+    
+wps.updateUIROI = function() {
+  var start = wps.projection.invert(wps.data.start);
+  var stop = wps.projection.invert(wps.data.stop);
+
+  d3.select('#lon-start').attr('value', wps.float2(start[0].map(-180, 180, 0, 360)));
+  d3.select('#lon-stop').attr('value', wps.float2(stop[0].map(-180, 180, 0, 360)));
+
+  d3.select('#lat-start').attr('value', wps.float2(start[1]));
+  d3.select('#lat-stop').attr('value', wps.float2(stop[1]));
+}
+
+wps.mouseMove = function() {
+  var coords = d3.mouse(this);
+
+  var geoCoords = wps.projection.invert(coords);
+
+  d3.select('.coords')
+      .html(wps.float2(geoCoords[0]) + ' &deg;, ' + wps.float2(geoCoords[1]) + '&deg;');
+}
+
+wps.registerControlChange = function(dimension, postFix) {
+  d3.select('#' + dimension + '-' + postFix)
+      .on('change', function() {
+        wps.data.start = wps.projection(wps.geoCoord('start'));
+
+        wps.data.stop = wps.projection(wps.geoCoord('stop'));
+
+        wps.dispatch.call('updateROI');
+      });
+}
+
 wps.domReady = function() {
-  var dispatch = d3.dispatch('updateROI', 'updateUIROI');
+  wps.registerControlChange('lon', 'start');
 
-  wps.dispatch = dispatch;
+  wps.registerControlChange('lon', 'stop');
 
-  wps.loadDomains(dispatch);
+  wps.registerControlChange('lat', 'start');
+
+  wps.registerControlChange('lat', 'stop');
+
+  wps.dispatch = d3.dispatch('updateROI', 'updateUIROI');
+    
+  wps.dispatch.on('updateROI', wps.updateROI);
+  
+  wps.dispatch.on('updateUIROI', wps.updateUIROI);
+
+  wps.loadDomains();
 
   wps.loadRegrid();
 
@@ -330,73 +388,21 @@ wps.domReady = function() {
       .attr('x', 5)
       .attr('y', 15);
 
-  // defined here since we use the closure on the data variable
-  function create_control(dimension, postFix, projection) {
-    d3.select('#' + dimension + '-' + postFix)
-        .on('change', function() {
-          wps.data.start = projection(wps.geoCoord('start'));
+  svg.on('mousemove', wps.mouseMove);
 
-          wps.data.stop = projection(wps.geoCoord('stop'));
-
-          dispatch.call('updateROI');
-        });
-  }
-
-  // load the data, setup the projection and start drawing
   d3.json(window.location.origin + '/static/js/world.json', function(error, world) {
     if (error) throw error;
 
-    var f = d3.format('.2f');
     var color = d3.scaleOrdinal(d3.schemeCategory20);
 
-    var projection = d3.geoEquirectangular();
-
-    wps.projection = projection;
-    
-    create_control('lon', 'start', projection); 
-
-    create_control('lon', 'stop', projection);
-
-    create_control('lat', 'start', projection);
-
-    create_control('lat', 'stop', projection);
-    
-    dispatch.on('updateROI', function() {
-      d3.select('.roi')
-          .attr('x', wps.data.start[0])
-          .attr('y', wps.data.start[1])
-          .attr('width', wps.data.stop[0] - wps.data.start[0])
-          .attr('height', wps.data.stop[1] - wps.data.start[1]);
-
-      d3.select('#domain_modified').attr('value', 'true'); 
-    });
-    
-    dispatch.on('updateUIROI', function() {
-      var start = projection.invert(wps.data.start);
-      var stop = projection.invert(wps.data.stop);
-
-      d3.select('#lon-start').attr('value', f(start[0].map(-180, 180, 0, 360)));
-      d3.select('#lon-stop').attr('value', f(stop[0].map(-180, 180, 0, 360)));
-
-      d3.select('#lat-start').attr('value', f(start[1]));
-      d3.select('#lat-stop').attr('value', f(stop[1]));
-    });
-
-    svg.on('mousemove', function() {
-      var coords = d3.mouse(this);
-
-      var geoCoords = projection.invert(coords);
-
-      d3.select('.coords')
-          .html(f(geoCoords[0]) + ' &deg;, ' + f(geoCoords[1]) + '&deg;');
-    });
+    wps.projection = d3.geoEquirectangular();
 
     var countries = topojson.feature(world, world.objects.countries);
     var neighbors = topojson.neighbors(world.objects.countries.geometries);
 
-    projection.fitSize([width, height], countries);
+    wps.projection.fitSize([width, height], countries);
 
-    var path = d3.geoPath(projection);
+    var path = d3.geoPath(wps.projection);
     var graticule = d3.geoGraticule();
 
     svg.append('path')
@@ -404,9 +410,9 @@ wps.domReady = function() {
         .attr('class', 'graticule')
         .attr('d', path);
 
-    wps.data.start = projection(wps.geoCoord('start'));
+    wps.data.start = wps.projection(wps.geoCoord('start'));
 
-    wps.data.stop = projection(wps.geoCoord('stop'));
+    wps.data.stop = wps.projection(wps.geoCoord('stop'));
 
     svg.append('rect')
         .attr('x', wps.data.start[0])
