@@ -79,9 +79,9 @@
         {% endif %}
           <td id="dimension">
             <label for="start">Start</label>
-            <input name="time-start" id="time-start" type="datetime" placeholder="Y/M/D H:M:S" value="{{ time.0|date:'Y/m/d g:i:s' }}" />
+            <input name="time-start" id="time-start" type="datetime" placeholder="Y/M/D H:M:S" value="{{ time.0 }}" />
             <label for="stop">Stop</label>
-            <input name="time-stop" id="time-stop" type="datetime" placeholder="Y/M/D H:M:S" value="{{ time.1|date:'Y/m/d g:i:s' }}" />
+            <input name="time-stop" id="time-stop" type="datetime" placeholder="Y/M/D H:M:S" value="{{ time.1 }}" />
             <label for="step">Step</label>
             <input name="time-step" id="time-step" type="number" value="1" />
           </td>

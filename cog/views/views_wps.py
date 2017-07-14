@@ -64,14 +64,22 @@ def find_access_url(urls, access_type):
     return None
 
 time_formats = {
+    '3hr': '%Y%m%d%H%M',
+    '6hr': '%Y%m%d%H',
     'day': '%Y%m%d',
     'mon': '%Y%m',
+    'monClim': '%Y%m',
+    'subhr': '%Y%m%d%H%M%S',
     'yr': '%Y'
 }
 
 time_freq_map = {
+    '3hr': 'Hourly',
+    '6hr': 'Hourly',
     'day': 'Day',
     'mon': 'Month',
+    'monClim': 'Month',
+    'subhr': 'Sub Hourly',
     'yr': 'Year',
 }
 
@@ -211,7 +219,11 @@ def wps(request):
 
         start = datetime.datetime.strptime(times[0], time_formats.get(time_freq))
 
+        start = '{0.year:04d}-{0.month:02d}-{0.day:02d} {0.hour:02d}:{0.minute:02d}:{0.second:02d}.0'.format(start);
+
         stop = datetime.datetime.strptime(times[-1], time_formats.get(time_freq))
+
+        stop = '{0.year:04d}-{0.month:02d}-{0.day:02d} {0.hour:02d}:{0.minute:02d}:{0.second:02d}.0'.format(stop);
 
         context['variables'] = list(set(var_names))
         context['wps_server'] = WPS_SERVER
