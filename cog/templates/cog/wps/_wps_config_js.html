@@ -336,6 +336,8 @@ wps.mouseMove = function() {
 
   var geoCoords = wps.projection.invert(coords);
 
+  geoCoords[0] = geoCoords[0].map(-180, 180, 0, 360);
+
   d3.select('.coords')
       .html(wps.float2(geoCoords[0]) + ' &deg;, ' + wps.float2(geoCoords[1]) + '&deg;');
 }
