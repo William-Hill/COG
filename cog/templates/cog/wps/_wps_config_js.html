@@ -377,6 +377,8 @@ wps.centerPacific = function() {
         .ease(d3.easePolyIn)
       )
       .attr('d', wps.path);
+
+  wps.dispatch.call('updateUIROI');
 }
 
 wps.domReady = function() {
