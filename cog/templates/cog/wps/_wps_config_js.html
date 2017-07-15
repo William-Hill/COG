@@ -421,7 +421,7 @@ wps.domReady = function() {
 
   svg.on('mousemove', wps.mouseMove);
 
-  d3.json(window.location.origin + '/static/js/world.json', function(error, world) {
+  d3.json('/static/data/50m_countries.json', function(error, world) {
     if (error) throw error;
 
     var color = d3.scaleOrdinal(d3.schemeCategory20);
