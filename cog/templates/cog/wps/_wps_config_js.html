@@ -45,6 +45,7 @@ Number.prototype.map = function(in_min, in_max, out_min, out_max) {
 }
 
 wps = {
+  pacific: false,
   resize: false,
   move: false,
   resizeDir: [false, false, false, false],
@@ -152,7 +153,6 @@ wps.regridChange = function() {
       <input name="uniform-lats" id="uniform-lats" type="number" placeholder="Lats" />
   `;
 
-
   if (gridType === 'Gaussian') {
     d3.select('#regrid-control')
         .remove();
@@ -248,10 +248,17 @@ wps.roiDragEnd = function() {
 }
 
 wps.roiDrag = function() {
-  var bbox = {
-    start: wps.projection([-180, 90]),
-    stop: wps.projection([180, -90]),
-  };
+  var bbox = { };
+
+  if (wps.pacific) {
+    bbox.start = wps.projection([0.001, 90]);
+
+    bbox.stop = wps.projection([-0.001, -90]);
+  } else {
+    bbox.start = wps.projection([-180, 90]);
+
+    bbox.stop = wps.projection([180, -90]);
+  }
 
   if (wps.resize) {
     var dx = d3.event.dx;
@@ -353,7 +360,29 @@ wps.registerControlChange = function(dimension, postFix) {
       });
 }
 
+wps.centerPacific = function() {
+  if (d3.event.target.checked) {
+    wps.pacific = true;
+
+    wps.projection.rotate([180, 0, 0]);
+  } else {
+    wps.pacific = false;
+
+    wps.projection.rotate([0, 0, 0]);
+  }
+
+  d3.selectAll('path')
+      .transition(d3.transition()
+        .duration(400)
+        .ease(d3.easePolyIn)
+      )
+      .attr('d', wps.path);
+}
+
 wps.domReady = function() {
+  d3.select('#center-pacific')
+      .on('change', wps.centerPacific);
+
   wps.registerControlChange('lon', 'start');
 
   wps.registerControlChange('lon', 'stop');
@@ -406,6 +435,8 @@ wps.domReady = function() {
 
     var path = d3.geoPath(wps.projection);
     var graticule = d3.geoGraticule();
+
+    wps.path = path;
 
     svg.append('path')
         .datum(graticule)
