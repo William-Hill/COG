@@ -63,7 +63,7 @@ class CoGInstall(object):
             raise Exception("Unknow database type: %s" % dbtype)
         
         # django management commands
-        #management.call_command("syncdb", interactive=False)
+        management.call_command("syncdb", interactive=False)
         #management.call_command("migrate","--fake-initial")
         management.call_command("migrate", interactive=False)
         management.call_command("collectstatic", interactive=False, verbosity=0)
