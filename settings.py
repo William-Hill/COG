@@ -5,9 +5,9 @@ from cog.utils import str2bool
 
 rel = lambda *x: os.path.join(os.path.abspath(os.path.dirname(__file__)), *x)
 
-''' 
+'''
 SITE SPECIFIC CONFIGURATION
-These parameters are read from file 'cog_settings.cfg' 
+These parameters are read from file 'cog_settings.cfg'
 located in directory COG_CONFIG_DIR (or by default '/usr/local/cog/cog_config').
 Each parameter has a default value.
 '''
@@ -329,3 +329,23 @@ CAPTCHA_IMAGE_SIZE = (100, 40)
 #==== Quality Control Flags references ==================================
 
 QCFLAGS_URLS = { 'obs4mips_indicators': 'https://www.earthsystemcog.org/projects/obs4mips/data-indicators' }
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': '/var/log/django/debug.log',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
